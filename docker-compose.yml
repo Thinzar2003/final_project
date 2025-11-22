@@ -24,7 +24,7 @@ services:
       PMA_PORT: 3306
       UPLOAD_LIMIT: 256M
     ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
+      - "${PHPMYADMIN_PORT:-8888}:80"
     depends_on: [mysql]
     networks: [stack]
 
