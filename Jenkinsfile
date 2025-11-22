@@ -20,7 +20,7 @@ pipeline {
         )
         string(
             name: 'API_HOST',
-            defaultValue: 'http://192.168.56.102:5000',   // 👈 your VM IP + API port
+            defaultValue: 'http://192.168.56.1:5000',
             description: 'API host URL for frontend to connect to.'
         )
     }
@@ -31,7 +31,7 @@ pipeline {
                 script {
                     echo "Checking out code..."
                     checkout scm
-                    echo "Deploying Restaurant project"
+                    echo "Deploying to production environment"
                     echo "Build: ${BUILD_TAG}, Commit: ${GIT_COMMIT_SHORT}"
                 }
             }
@@ -56,10 +56,9 @@ pipeline {
                         string(credentialsId: 'MYSQL_ROOT_PASSWORD', variable: 'MYSQL_ROOT_PASS'),
                         string(credentialsId: 'MYSQL_PASSWORD', variable: 'MYSQL_PASS')
                     ]) {
-                        // Create .env file that Docker Compose will use
+                        // Create .env file for Docker Compose
                         sh """
                             cat > .env <<EOF
-# MySQL Database Configuration
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
 MYSQL_DATABASE=restaurant_db
 MYSQL_USER=user
@@ -67,22 +66,18 @@ MYSQL_PASSWORD=${MYSQL_PASS}
 MYSQL_PORT=3306
 DB_PORT=3306
 
-# phpMyAdmin Configuration
 PHPMYADMIN_PORT=8888
 
-# API Configuration
 API_PORT=5000
 PORT=5000
 
-# Frontend Configuration
 FRONTEND_PORT=3000
-NODE_ENV=production
 API_HOST=${params.API_HOST}
 EOF
                         """
                     }
 
-                    echo "Environment configuration created (.env)"
+                    echo "Environment configuration created"
                     sh 'echo ".env file created successfully"'
                 }
             }
@@ -121,7 +116,7 @@ EOF
                     echo "Performing health check..."
 
                     sh """
-                        # Check if containers are running
+                        # Show running containers
                         docker compose ps
 
                         # Wait for API to be ready (max 60 seconds)
@@ -151,8 +146,8 @@ EOF
 
                         echo ""
                         echo "=== Deployed Services ==="
-                        echo "Frontend:  http://localhost:3000"
-                        echo "API:       http://localhost:5000"
+                        echo "Frontend: http://localhost:3000"
+                        echo "API: http://localhost:5000"
                         echo "phpMyAdmin: http://localhost:8888"
                     """
                 }
@@ -162,12 +157,37 @@ EOF
 
     post {
         success {
-            echo "✅ Restaurant deployment completed successfully!"
-            echo "Build: ${BUILD_TAG}"
-            echo "Commit: ${GIT_COMMIT_SHORT}"
-            echo ""
-            echo "Access your application:"
-            echo "  - Frontend:  http://localhost:3000"
-            echo "  - API:       http://localhost:5000"
-            echo "  - phpMyAdmin: http://localhost:8888"
+            script {
+                echo "✅ Deployment completed successfully!"
+                echo "Build: ${BUILD_TAG}"
+                echo "Commit: ${GIT_COMMIT_SHORT}"
+                echo ""
+                echo "Access your application:"
+                echo "  - Frontend: http://localhost:3000"
+                echo "  - API: http://localhost:5000"
+                echo "  - phpMyAdmin: http://localhost:8888"
+            }
         }
+
+        failure {
+            script {
+                echo "❌ Deployment failed!"
+                echo "Printing container logs for debugging..."
+                sh 'docker compose logs --tail=50 || true'
+            }
+        }
+
+        always {
+            script {
+                echo "Cleaning up old Docker resources..."
+                sh """
+                    # Remove dangling images
+                    docker image prune -f
+
+                    # Remove old containers
+                    docker container prune -f
+                """
+            }
+        }
+    }
+}
