@@ -124,7 +124,7 @@ EOF
                         # Retry up to 90 seconds until API responds (200 OK)
                         timeout 90 bash -c '
                           while true; do
-                            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health || echo "000")
+                            STATUS_CODE=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health || echo "000")
                             echo "Health status: \$STATUS_CODE"
                             if [ "\$STATUS_CODE" = "200" ]; then
                               echo "API is healthy!"
