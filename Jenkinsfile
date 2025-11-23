@@ -111,7 +111,7 @@ EOF
             steps {
                 script {
                     echo "Waiting for services to start..."
-                    sh 'sleep 15'
+                    sh 'sleep 20'   // give MySQL a bit more time
 
                     echo "Performing health check..."
 
@@ -119,11 +119,24 @@ EOF
                         # Show running containers
                         docker compose ps
 
-                        # Wait for API to be ready (max 60 seconds)
-                        timeout 60 bash -c 'until curl -f http://localhost:5000/health; do sleep 2; done' || exit 1
+                        echo "Waiting for API /health endpoint..."
 
-                        # Check restaurants endpoint
-                        curl -f http://localhost:5000/restaurants || exit 1
+                        # Retry up to 90 seconds until API responds (200 OK)
+                        timeout 90 bash -c '
+                          while true; do
+                            STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health || echo "000")
+                            echo "Health status: \$STATUS_CODE"
+                            if [ "\$STATUS_CODE" = "200" ]; then
+                              echo "API is healthy!"
+                              break
+                            fi
+                            echo "API not healthy yet, retrying in 5s..."
+                            sleep 5
+                          done
+                        '
+
+                        echo "Checking /restaurants endpoint..."
+                        curl -f http://localhost:5000/restaurants
 
                         echo "Health check passed!"
                     """
