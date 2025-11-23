@@ -60,7 +60,7 @@ export default function Page() {
   return (
     <main className="container">
       <header className="header">
-        <h1 className="title">Restaurant Recommender</h1>
+        <h1 className="title">Restaurant Recommender - 6608962</h1>
         <p className="subtitle">
           Filter by cuisine, city, and rating to find a place to eat.
         </p>
